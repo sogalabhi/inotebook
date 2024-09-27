@@ -8,7 +8,7 @@ const fetchuser = require("../middleware/fetchuser");
 const router = express.Router();
 const JSWKey = 'shhhhh';
 
-
+//Create User
 router.post('/createuser', [
     body('name').isLength({ min: 3 }),
     body('email').isEmail(),
@@ -37,12 +37,14 @@ router.post('/createuser', [
             var data = {
                 user: { id: user.id }
             }
-            var token = jwt.sign(data, jswkey);
+            var token = jwt.sign(data, JSWKey);
             res.json({ token })
         });
     });
 
 })
+
+//Login User 
 router.post('/login', [
     body('email').isEmail(),
     body('password').isLength({ min: 5 }),
@@ -73,6 +75,8 @@ router.post('/login', [
     }
 
 })
+
+//Get user details 
 router.post('/getuser', fetchuser, async (req, res) => {
     try {
         let userId = req.user.id;
