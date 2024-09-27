@@ -3,8 +3,11 @@ const User = require("../models/User")
 var jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
+const fetchuser = require("../middleware/fetchuser");
 
 const router = express.Router();
+const JSWKey = 'shhhhh';
+
 
 router.post('/createuser', [
     body('name').isLength({ min: 3 }),
@@ -15,7 +18,7 @@ router.post('/createuser', [
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    
+
     let user = await User.findOne({ email: req.body.email });
     if (user) {
         return res.status(400).json({ error: "Duplicate email" });
@@ -34,8 +37,7 @@ router.post('/createuser', [
             var data = {
                 user: { id: user.id }
             }
-            var token = jwt.sign(data, 'shhhhh');
-
+            var token = jwt.sign(data, jswkey);
             res.json({ token })
         });
     });
@@ -52,24 +54,32 @@ router.post('/login', [
     const { email, password } = req.body;
     try {
         let user = await User.findOne({ email });
-    if (!user) {
-        return res.status(400).json({ error: "Invalid credentials" });
-    }
-    
-    const match = await bcrypt.compare(password, user.password);
-    if(!match){
-        return res.status(400).json({ error: "Invalid credentials" });
-    }
-    var data = {
-        user: { id: user.id }
-    }
-    var token = jwt.sign(data, 'shhhhh');
+        if (!user) {
+            return res.status(400).json({ error: "Invalid credentials" });
+        }
 
-    res.json({ token })
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            return res.status(400).json({ error: "Invalid credentials" });
+        }
+        var data = {
+            user: { id: user.id }
+        }
+        var token = jwt.sign(data, JSWKey);
+
+        res.json({ token })
     } catch (error) {
         return res.status(400).json({ error: "internal server error" });
     }
 
 })
-
+router.post('/getuser', fetchuser, async (req, res) => {
+    try {
+        let userId = req.user.id;
+        const user = await User.findById(userId).select("-password");
+        res.send({ user });
+    } catch (error) {
+        res.status(500).send({ error })
+    }
+})
 module.exports = router;
